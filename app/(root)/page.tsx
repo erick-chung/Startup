@@ -28,6 +28,8 @@ export default async function Home({
   // We need to take the inputted query and use to refilter the fetch results
   const params = { search: query || null };
 
+  // From this session, we can get the Sanity ID of the author of that user
+  // So we use this line, everytime we do anything AUTHOR-SPECIFIC (creating startups, we need to know who author of that startup is // showing user specific pages, we need to know who the user is)
   const session = await auth();
   console.log(session?.id);
 
