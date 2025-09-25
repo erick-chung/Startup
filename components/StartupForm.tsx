@@ -5,7 +5,10 @@ import { Input } from "@/components/ui/input";
 import MDEditor from "@uiw/react-md-editor";
 import { Button } from "./ui/button";
 import { Send } from "lucide-react";
-
+import { formSchema } from "@/lib/validation";
+import { z } from "zod";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 const StartupForm = () => {
   // We need to add record here because this is typescript. and the problem is that typescript doesnt know what properties this object will have.
   // And when we try to use errors.title, typescript gets confused cuz its thinking does title even exist in this object?
@@ -14,6 +17,7 @@ const StartupForm = () => {
   // RECORD DESCRIBES THE CONTENTS, NOT THE CONTAINER
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pitch, setPitch] = useState("");
+  const router = useRouter(); // Adds automatic navigation (without clicks)
 
   // prevState and formData are automatically provided by next.js when you use server actions (form action)
   // Why is prevState important? -> without it, user submits form with no title. form resets but there is no feedback so user doesnt know what happened or if it went through
@@ -22,10 +26,66 @@ const StartupForm = () => {
 
   // When the user submits the form, the browser automatically creates a FormData object with all the form inputs.
   // Next.js receives the FormData and takes that object and passes it to our function as the formData parameter
-  const handleFormSubmit = (prevState: any, formData: FormData) => {};
+  const handleFormSubmit = async (prevState: any, formData: FormData) => {
+    try {
+      // Take the raw form data and pull out specific fields
+      // We cant use the data in FormData directly because of its format! We must convert to regular JavaScript values
+      const formValues = {
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        category: formData.get("category") as string,
+        link: formData.get("link") as string,
+        pitch,
+      };
+
+      // Check if the data is valid using Zod schema validation.
+      // ParseAsync checks this data and waits for the result. if valid, it goes to next line
+      // If invalid, it throws an error and goes to catch block
+      await formSchema.parseAsync(formValues); // await means VALIDATE FIRST and wait for this to complete
+      console.log(formValues);
+      // After validating, if valid, we mutate the database and add the new startup
+      // const result = await createIdea(prevState, formData, pitch); // await means CREATE IN DATABASE and wait for this complete
+      // console.log(result);
+      // if (result.status === "SUCCESS") {
+      //   toast.success("Startup created!", {
+      //     description: "Your startup has been created successfully",
+      //   });
+      //   router.push(`/startup/${result.id}`); // automatically take user to this page
+      // }
+      // return result;
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        // this if statement is only for zod validation errors (so its saying => IF THIS ERROR IS SPECIFICALLY A ZOD VALIDAITON ERROR...)
+        const fieldErrors = err.flatten().fieldErrors;
+
+        setErrors(fieldErrors as unknown as Record<string, string>); // we're using unknown as to tell typescript to basically ignore the type error but dont do this. error occurs cuz zod gives arrays but our errors state expects string for both key and value
+
+        toast.error("Validation failed", {
+          description: "Please check your inputs and try again",
+        });
+
+        return { ...prevState, error: "Validation failed", status: "ERROR" };
+      }
+
+      toast.error("SOMETHING WENT WRONG", {
+        description: "An unexpected error has occurred",
+      });
+
+      return {
+        // other errrors like server or network issues
+        ...prevState,
+        error: "An unexpected error has occurred",
+        status: "ERROR",
+      };
+    }
+  };
 
   // useActionState is a react hook that handles form submissions with server actions
   // It's like a special version of useState thats specifically for form submissions
+
+  // State is the current result of function (success/error)
+  // formAction is a special function that calls handleFormSubmit
+  // isPending is true while form is submitting, is false when done
 
   const [state, formAction, isPending] = useActionState(handleFormSubmit, {
     error: "",
@@ -33,7 +93,7 @@ const StartupForm = () => {
   });
 
   return (
-    <form action={() => {}} className="startup-form">
+    <form action={formAction} className="startup-form">
       <div>
         <label htmlFor="title" className="startup-form_label">
           Title
@@ -142,3 +202,5 @@ so you would do prevState: formState
 
 
 */
+
+// SO USEACTIONSTATE IS ACTUALL

@@ -14,6 +14,6 @@ export const formSchema = z.object({
       } catch {
         return false;
       }
-    }),
+    }, "Please provide a valid image URL!"),
   pitch: z.string().min(10),
 });

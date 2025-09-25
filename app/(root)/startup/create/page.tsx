@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import StartupForm from "@/components/StartupForm";
 import { redirect } from "next/navigation";
 
-const Page = async () => {
+const StartupCreatePage = async () => {
   // If user is not logged in (because session is null), then redirect them to home page. Because only logged in users should be able to create a startup
   const session = await auth();
   if (!session) redirect("/");
@@ -17,4 +17,4 @@ const Page = async () => {
   );
 };
 
-export default Page;
+export default StartupCreatePage;
