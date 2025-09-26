@@ -9,6 +9,7 @@ import { formSchema } from "@/lib/validation";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { createPitch } from "@/lib/actions";
 const StartupForm = () => {
   // We need to add record here because this is typescript. and the problem is that typescript doesnt know what properties this object will have.
   // And when we try to use errors.title, typescript gets confused cuz its thinking does title even exist in this object?
@@ -42,17 +43,19 @@ const StartupForm = () => {
       // ParseAsync checks this data and waits for the result. if valid, it goes to next line
       // If invalid, it throws an error and goes to catch block
       await formSchema.parseAsync(formValues); // await means VALIDATE FIRST and wait for this to complete
-      console.log(formValues);
+
       // After validating, if valid, we mutate the database and add the new startup
-      // const result = await createIdea(prevState, formData, pitch); // await means CREATE IN DATABASE and wait for this complete
-      // console.log(result);
-      // if (result.status === "SUCCESS") {
-      //   toast.success("Startup created!", {
-      //     description: "Your startup has been created successfully",
-      //   });
-      //   router.push(`/startup/${result.id}`); // automatically take user to this page
-      // }
-      // return result;
+      // the return value from actions.ts is set to the result variable here
+      const result = await createPitch(prevState, formData, pitch); // await means CREATE IN DATABASE and wait for this complete
+
+      if (result.status === "SUCCESS") {
+        toast.success("Startup created!", {
+          description: "Your startup has been created successfully",
+        });
+        // We need ._id here because result comes from sanity and sanity stores .id as ._id
+        router.push(`/startup/${result._id}`); // automatically take user to this page
+      }
+      return result;
     } catch (err) {
       if (err instanceof z.ZodError) {
         // this if statement is only for zod validation errors (so its saying => IF THIS ERROR IS SPECIFICALLY A ZOD VALIDAITON ERROR...)
